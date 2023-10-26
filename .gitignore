@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.db
+TeamFiltration.exe
 
 # Distribution / packaging
 .Python
