@@ -8,6 +8,7 @@ __pycache__/
 *.db
 TeamFiltration.exe
 geckodriver.exe
+*roadtools_auth
 
 # Distribution / packaging
 .Python

