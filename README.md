@@ -3,3 +3,28 @@ If it can be automated, it should be automated! Bobber will monitor a given Evil
 
 Bobber accepts a number of input arguments to adjust the RoadTools interactive auth flow, selection between key and credentials-based SSH auth, as well as the added benefit of getting pushover notifications once a user submits their credentials and the loot is on the way.
 
+```
+                                         ▓▓                                                         
+                                         ▓▓▓                                                        
+                                          ▓▓                                                        
+                                          ▓▓▓                                                       
+                                           ▓▓                                                       
+                                           ▓▓▓                                                      
+                                            ▓▓                                                      
+                                            ▓▓▓                                                     
+                                             ▓▓                                                     
+                                             ▓▓▓                                                    
+                           ░░░░░░░░░░░░░░░░░░█▓▓▓▓▓░░░░░░░░░░░░░                                    
+                 ░░░░░░░░                   ▓▓▓█▓▓▓▓▓             ░░░░░░░░                          
+           ░░░░░░             ░░░░░░░░░░░░░▓▓▓▓▓▓█▓█▓▓▓░░░░░░             ░░░░░░                    
+      ░░░░░░          ░░░░░░               ▓▓█▓▓▓▓▓▓▓▓▓▓       ░░░░░░           ░░░░░               
+   ░░░░░         ░░░░░           ░░░░░░░░░░▓▓▓▓█▓▓▓▓█▓▓▓░░           ░░░░░         ░░░░░            
+ ░░░░░        ░░░░░         ░░░░░          ▓█▓▓▓▓█▓▓▓▓█▓▓ ░░░░░         ░░░░░        ░░░░░          
+░░░░░        ░░░░        ░░░░░          ░░░▒▓▓▓▓▓▓▓▓█▓▓▓▓    ░░░░░        ░░░░        ░░░░░         
+░░░░        ░░░░░        ░░░░          ░░░ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒     ░░░░        ░░░░░        ░░░░       
+ ░░░░        ░░░░░        ░░░░░         ░░░░░▒▒▒▒▒▒▒▒▒▒▒  ░░░░░░         ░░░░░        ░░░░      
+  ░░░░░        ░░░░░         ░░░░            ░░░░░░         ░░░░░        ░░ 
+    ░░░░░         ░░░░░           ░░░░░░░░        ░░░░░░░░           ░░░░░         ░░░   
+                                                                        
+                                Bobber - Bounces when a fish bites!
+```
