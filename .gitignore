@@ -7,6 +7,7 @@ __pycache__/
 *.so
 *.db
 TeamFiltration.exe
+geckodriver.exe
 
 # Distribution / packaging
 .Python
