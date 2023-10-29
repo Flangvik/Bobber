@@ -1,0 +1,9 @@
+colorama==0.4.6
+paramiko==3.3.1
+Requests==2.31.0
+roadlib==0.19.1
+roadrecon==1.1.4
+roadtools==0.0.1
+roadtx==1.4.3
+selenium==4.14.0
+selenium_wire==5.1.0

