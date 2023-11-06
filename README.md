@@ -140,7 +140,7 @@ $msAzJWT =Get-AADIntAccessTokenWithRefreshToken -ClientId "1950a258-227b-4e31-a9
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
 #Use the refresh token and tenantId in order to run AzureHound against the tenant
-azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o output.json
+./azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o output.json
 ```
 
 ### GraphRunner
@@ -171,10 +171,10 @@ $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -ra
 @{cli_refresh_token = $roadToolsAuth.refreshToken } | ConvertTo-Json | Set-Content -Path 'tokens.json'
 
 #Perform recon of possible Power Platform deployments
-powerpwn.exe recon -t $roadToolsAuth.tenantId
+./powerpwn.exe recon -t $roadToolsAuth.tenantId
 
 #Dump data from found Power Platform deployments
-powerpwn.exe dump -t $roadToolsAuth.tenantId
+./powerpwn.exe dump -t $roadToolsAuth.tenantId
 ```
 
 # Todo
