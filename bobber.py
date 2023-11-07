@@ -223,8 +223,9 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
 
             print(f"{INFO_ICON} Executing: {commandLine}")
 
-            #split the command line into a list
-            commandLine = shlex.split(commandLine)
+            #split the command line into a list, not needed for Windows, but needed for linux (?) ¯\_(ツ)_/¯ 
+            if not platform.system() == 'Windows':
+                commandLine = shlex.split(commandLine)
 
             # Execute the TeamFiltration command
             process = subprocess.Popen(commandLine,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
