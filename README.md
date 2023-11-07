@@ -28,6 +28,8 @@ Bobber monitors a given Evilginx database file for changes, and if a valid Evilg
 
 Bobber accepts a number of input arguments to adjust the RoadTools interactive auth flow, selection between key and credential-based SSH auth, as well as the added benefit of receiving pushover notifications once a user submits their credentials and the loot is on the way.
 
+Checkout the TrustedSec Blogpost [The Triforce of Initial Access](https://www.trustedsec.com), for more information 
+
 ```
 usage: Bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY] [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams]
                  [--onedrive] [--owa] [--owa-limit OWA_LIMIT] [-c CLIENT] [-r RESOURCE] [-s SCOPE] [-ru URL] [-t TENANT] [-d DRIVER_PATH] [-k]
