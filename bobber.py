@@ -332,7 +332,7 @@ if __name__ == "__main__":
     print(Fore.CYAN + banner)
 
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("database_path", help="Path to the local OR remote Evilginx database file.")
+    arg_parser.add_argument("database_path", help="Path to the local OR remote Evilginx database file.", required=True)
 
     ssh_group = arg_parser.add_argument_group('SSH Options', 'Evilginx database monitoring SSH options')
     ssh_group.add_argument("--host", help="SSH hostname/IP when fetching from a remote host.")
