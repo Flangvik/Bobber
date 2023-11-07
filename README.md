@@ -31,8 +31,10 @@ Bobber accepts a number of input arguments to adjust the RoadTools interactive a
 Checkout the TrustedSec Blogpost [The Triforce of Initial Access](https://www.trustedsec.com), for more information 
 
 ```
-usage: bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY] [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams]
-                 [--onedrive] [--owa] [--owa-limit OWA_LIMIT] [-c CLIENT] [-r RESOURCE] [-s SCOPE] [-ru URL] [-t TENANT] [-d DRIVER_PATH] [-k]
+usage: bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY]
+                 [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams] [--onedrive] [--owa]
+                 [--owa-limit OWA_LIMIT] [--tf-path TF_PATH] [-c CLIENT] [-r RESOURCE] [-s SCOPE] [-ru URL]
+                 [-t TENANT] [-d DRIVER_PATH] [-k]
                  database_path
 
 positional arguments:
@@ -67,6 +69,7 @@ TeamFiltration Options:
   --owa                 Exfiltrate information from the Outlook REST API (The last 2k emails, both sent and received)
   --owa-limit OWA_LIMIT
                         Set the max amount of emails to exfiltrate, default is 2k.
+  --tf-path TF_PATH     Path to your TeamFiltration file on disk (download from https://github.com/Flangvik/TeamFiltration/releases/latest)
 
 RoadTools Options:
   RoadTools RoadTX interactive authentication options
@@ -82,7 +85,7 @@ RoadTools Options:
   -t TENANT, --tenant TENANT
                         Tenant ID or domain to auth to
   -d DRIVER_PATH, --driver-path DRIVER_PATH
-                        Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)
+                        Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases/latest)
   -k, --keep-open       Do not close the browser window after timeout. Useful if you want to browse online apps with the obtained credentials
 ```
 # Setup
