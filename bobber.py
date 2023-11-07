@@ -368,9 +368,6 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     processed_combinations = set()
 
-    if not is_dependency_present(args.tf_path):
-        print(f'{ERROR_ICON} TeamFiltration not found! Required for exfiltration, download from https://github.com/Flangvik/TeamFiltration/releases/latest')
-        exit(0)
 
     if not is_dependency_present(args.driver_path):
         print(f'{ERROR_ICON} Geckdriver not found! Required for RoadTools RoadTX, download from https://github.com/mozilla/geckodriver/releases/latest')
@@ -395,6 +392,11 @@ if __name__ == "__main__":
     
     if args.owa_limit:
         tfArguments.append(f'--owa-limit {args.owa_limit}')
+
+    if not is_dependency_present(args.tf_path) and tfArguments:
+        print(f'{ERROR_ICON} TeamFiltration not found! Required for exfiltration, download from https://github.com/Flangvik/TeamFiltration/releases/latest')
+        exit(0)
+
 
     if args.host:
         remote_info = {
