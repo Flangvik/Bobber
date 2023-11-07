@@ -83,6 +83,13 @@ class LazySeleniumAuthentication(SeleniumAuthentication):
             driver = webdriver.Firefox(service=service)
         return driver
 
+
+def default_geckodriver_filename():
+    if platform.system() == 'Windows':
+        return 'geckodriver.exe'
+    else:
+        return 'geckodriver'
+
 def is_teamfiltration_present():
     """
     Checks if the TeamFiltration binary is present in the system PATH or current directory.
@@ -138,6 +145,7 @@ def extract_valid_jsons(filename):
         print(f"{ERROR_ICON} An I/O error occurred while reading '{filename}': {e}")
     
     return valid_jsons
+ 
 
 def is_gecko_driver_present(geckoDriverPath):
     """
@@ -380,7 +388,7 @@ if __name__ == "__main__":
     roadtools_group.add_argument('-s','--scope',action='store',help='Scope to use. Will automatically switch to v2.0 auth endpoint if specified. If unsure use -r instead.')
     roadtools_group.add_argument('-ru', '--redirect-url', action='store', metavar='URL',help='Redirect URL used when authenticating (default: https://login.microsoftonline.com/common/oauth2/nativeclient)',default="https://login.microsoftonline.com/common/oauth2/nativeclient")
     roadtools_group.add_argument('-t','--tenant',action='store',help='Tenant ID or domain to auth to',required=False)
-    roadtools_group.add_argument('-d', '--driver-path',action='store',help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)',default='geckodriver.exe')
+    roadtools_group.add_argument('-d', '--driver-path',action='store',help='Path to geckodriver file on disk (download from: https://github.com/mozilla/geckodriver/releases)',default=default_geckodriver_filename())
     roadtools_group.add_argument('-k', '--keep-open', action='store_true', help='Do not close the browser window after timeout. Useful if you want to browse online apps with the obtained credentials')
     
     args = arg_parser.parse_args()
